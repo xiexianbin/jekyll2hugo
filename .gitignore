@@ -1,0 +1,4 @@
+*.pyc
+jekyll2hugo.iml
+.idea/
+hugo-static/
