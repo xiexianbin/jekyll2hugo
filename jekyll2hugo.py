@@ -8,7 +8,8 @@ import re
 import traceback
 
 import argparse
-import yaml
+from ruamel.yaml import YAML
+yaml = YAML()
 
 content_regex = re.compile(r'---([\s\S]*?)---([\s\S]*)')
 replace_regex_list = [
@@ -19,16 +20,18 @@ replace_regex_list = [
 filename_regex = re.compile(r'(\d+-\d+-\d+)-(.*)')
 
 
-class MyDumper(yaml.Dumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super(MyDumper, self).increase_indent(flow, False)
+# class MyDumper(yaml.RoundTripDumper):
+#     def increase_indent(self, flow=False, sequence=None, indentless=False):
+#         return super(MyDumper, self).increase_indent(
+#             flow=flow,
+#             sequence=sequence,
+#             indentless=indentless)
 
 
 def convert_front_matter(front_data, post_date, url):
     del front_data['id']
     del front_data['layout']
     front_data["date"] = post_date.strftime('%Y-%m-%dT%H:%M:%S+08:00')
-    print front_data, post_date, url
 
     for tag in ['tags', 'categories', 'category']:
         if tag in front_data and isinstance(front_data[tag], basestring):
@@ -37,6 +40,30 @@ def convert_front_matter(front_data, post_date, url):
     if 'category' in front_data:
         front_data['categories'] = front_data['category']
         del front_data['category']
+
+    front_data['title'] = front_data.pop("title")
+    # front_data['author'] =
+    # front_data['tagline'] = front_data.pop("tagline", None)
+    front_data['date'] = front_data.pop("date")
+    front_data['draft'] = False
+    # front_data['type'] = "single"
+    front_data['layout'] = "single"
+    front_data['comment'] = True
+    front_data['keywords'] = []
+    front_data['description'] = None
+
+    _url = url.split('/')
+    _url.pop(-1)
+    front_data['aliases'] = [
+        "/{}{}".format(front_data['categories'][0], url),
+        "/{}{}.html".format(front_data['categories'][0], "/".join(_url))
+    ]
+    front_data['categories'] = front_data.pop("categories")
+    front_data['tags'] = front_data.pop("tags")
+    front_data['original'] = True
+    front_data['reference'] = []
+
+    print front_data, post_date, url
 
 
 def convert_body_text(body_text):
@@ -48,16 +75,12 @@ def convert_body_text(body_text):
 
 
 def write_out_file(front_data, body_text, out_file_path):
-    out_lines = ['---']
-    front_string = yaml.dump(
-        front_data, width=1000, default_flow_style=False,
-        allow_unicode=True, Dumper=MyDumper)
-    out_lines.extend(front_string.splitlines())
-    out_lines.append('---')
-    out_lines.extend(body_text.splitlines())
-
     with open(out_file_path, 'w') as f:
-        f.write('\n'.join(out_lines))
+        f.write('---\n')
+        yaml.indent(mapping=2, sequence=4, offset=2)
+        yaml.dump(front_data, f)
+        f.write('---\n')
+        f.write('\n'.join(body_text.splitlines()))
 
 
 def parse_from_filename(filename):
