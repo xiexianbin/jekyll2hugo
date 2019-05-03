@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 from datetime import datetime
 import os
+import sys
 import re
 import traceback
 
 import argparse
 from ruamel.yaml import YAML
 yaml = YAML()
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 
 content_regex = re.compile(r'---([\s\S]*?)---([\s\S]*)')
 replace_regex_list = [
